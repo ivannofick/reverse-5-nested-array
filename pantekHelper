@@ -1,0 +1,149 @@
+<?php
+
+/**
+* this pantek helper
+*
+*[{"id":11,"parent":10,"level":5,"but":2132,"parent_child":[{"id":10,"parent":9,"level":4,"but":1911,"parent_child":[{"id":9,"parent":1,"level":3,"but":210,"parent_child":[{"id":1,"parent":0,"level":2,"but":3347,"parent_child":[]}]}]}]},{"id":12,"parent":10,"level":5,"but":2153,"parent_child":[{"id":10,"parent":9,"level":4,"but":1911,"parent_child":[{"id":9,"parent":1,"level":3,"but":210,"parent_child":[{"id":1,"parent":0,"level":2,"but":3347,"parent_child":[]}]}]}]},{"id":13,"parent":10,"level":5,"but":2184,"parent_child":[{"id":10,"parent":9,"level":4,"but":1911,"parent_child":[{"id":9,"parent":1,"level":3,"but":210,"parent_child":[{"id":1,"parent":0,"level":2,"but":3347,"parent_child":[]}]}]}]},{"id":14,"parent":10,"level":5,"but":2255,"parent_child":[{"id":10,"parent":9,"level":4,"but":1911,"parent_child":[{"id":9,"parent":1,"level":3,"but":210,"parent_child":[{"id":1,"parent":0,"level":2,"but":3347,"parent_child":[]}]}]}]},{"id":15,"parent":9,"level":4,"but":894,"parent_child":[{"id":9,"parent":1,"level":3,"but":210,"parent_child":[{"id":1,"parent":0,"level":2,"but":3347,"parent_child":[]}]}]},{"id":27,"parent":1,"level":3,"but":3291,"parent_child":[{"id":1,"parent":0,"level":2,"but":3347,"parent_child":[]}]}]
+***/
+
+namespace App\Helpers;
+
+class pantekHelper {
+
+    public static function flatten($dataAsli)
+    {
+        $result = [];
+
+        if (!is_array($dataAsli)) {
+            $array = func_get_args();
+        }
+
+        foreach ($dataAsli as $key => $value) {
+            if (is_array($value)) {
+                $result[] = array_merge($result, array_flatten($value));
+            } else {
+                $result[] = array_merge($result, array($key => $value));
+            }
+        }
+        $result = self::reverse($result);
+        return $result;
+    }
+
+
+    public static function reverse($dataAsli)
+    {
+        foreach ($dataAsli as $key => $value) {
+
+            $size = sizeof($value);
+            $res= [];
+              for($i=$size-1; $i>=0; $i--){
+                  if (!is_array($value[$i])) {
+                      $res[]= $value[$i];
+                  }
+            }
+            $dataAsli[$key] = $res;
+        }
+        $dataAsli = self::gabungan($dataAsli);
+        return $dataAsli;
+    }
+
+    public static function gabungan($dataAsli)
+    {
+        $data = [];
+        foreach ($dataAsli as $key => $val) {
+            $chunkes = array_chunk($val, 5);
+            $reverseChunkCp = [];
+            for ($i=0; $i < count($chunkes); $i++) {
+                $reverseChunk = array_reverse($chunkes[$i]);
+                $reverseChunkCp[$i]['id'] = $reverseChunk[0];
+                $reverseChunkCp[$i]['but'] = $reverseChunk[1];
+                // $reverseChunkCp[$i]['name'] = $reverseChunk[2];
+                $reverseChunkCp[$i]['level'] = $reverseChunk[3];
+                $reverseChunkCp[$i]['parent'] = $reverseChunk[4];
+            }
+            $data[$key] = $reverseChunkCp;
+            // $data[$key] = self::mergerArrayPart2($val, $key);
+        }
+        $gabungData = [];
+        for ($i=0; $i < count($data); $i++) {
+            for ($l=0; $l < count($data[$i]); $l++) {
+                $gabungData[] = $data[$i][$l];
+            }
+        }
+        return self::mergerArrayPart2($gabungData);
+    }
+
+    public static function mergerArrayPart2($arr, $parent=0)
+    {
+        $gabungLevel5 = [];
+        $gabungLevel4 = [];
+        $gabungLevel3 = [];
+        $gabungLevel2 = [];
+        foreach ($arr as $row => $val) {
+            if ($val['level'] === 2) {
+                if (!isset($gabungLevel2[$val['id']])) {
+                    $gabungLevel2[$val['id']] = $val;
+                } else {
+                    if (!in_array($val['but'], array_column($gabungLevel2[$val['id']], 'but'))) {
+                        $gabungLevel2[$val['id']] = $val;
+                    }
+                }
+            }
+            if ($val['level'] === 3) {
+                if (!isset($gabungLevel3[$val['parent']])) {
+                    $gabungLevel3[$val['parent']][] = $val;
+                } else {
+                    if (!in_array($val['but'], array_column($gabungLevel3[$val['parent']], 'but'))) {
+                        $gabungLevel3[$val['parent']][] = $val;
+                    }
+                }
+            }
+            if ($val['level'] === 4) {
+                if (!isset($gabungLevel4[$val['parent']])) {
+                    $gabungLevel4[$val['parent']][] = $val;
+                } else {
+                    if (!in_array($val['but'], array_column($gabungLevel4[$val['parent']], 'but'))) {
+                        $gabungLevel4[$val['parent']][] = $val;
+                    }
+                }
+            }
+            if ($val['level'] === 5) {
+                if (!isset($gabungLevel5[$val['parent']])) {
+                    $gabungLevel5[$val['parent']][] = $val;
+                } else {
+                    if (!in_array($val['but'], array_column($gabungLevel5[$val['parent']], 'but'))) {
+                        $gabungLevel5[$val['parent']][] = $val;
+                    }
+                }
+            }
+        }
+
+        foreach ($gabungLevel4 as $key => $val) {
+            foreach ($val as $key4 => $val4) {
+                $gabungLevel4[$key][$key4]['children'] = [];
+                if (isset($gabungLevel5[$val4['id']])) {
+                    $gabungLevel4[$key][$key4]['children'] = $gabungLevel5[$val4['id']];
+                }
+            }
+        }
+
+        foreach ($gabungLevel3 as $key => $val) {
+            foreach ($val as $key3 => $val3) {
+                $gabungLevel3[$key][$key3]['children'] = [];
+                if (isset($gabungLevel4[$val3['id']])) {
+                    $gabungLevel3[$key][$key3]['children'] = $gabungLevel4[$val3['id']];
+                }
+            }
+        }
+
+        foreach ($gabungLevel2 as $key => $val) {
+            $gabungLevel2[$key]['children'] = [];
+            if (isset($gabungLevel3[$val['id']])) {
+                $gabungLevel2[$key]['children'] = $gabungLevel3[$val['id']];
+            }
+        }
+
+        return array_values($gabungLevel2);
+    }
+
+}
